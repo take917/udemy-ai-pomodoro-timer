@@ -1,15 +1,35 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import TimerDisplay from "./TimerDisplay";
 import Controls from "./Controls";
+import MetadataUpdater from "./MetadataUpdater";
+import TimerDisplay from "./TimerDisplay";
 import { useEffect, useState } from "react";
+
+import { playNotificationSound } from "@/utils/sound";
+
+// タイマーのモードの型
+type Mode = "work" | "break";
 
 export default function TimerApp() {
   // タイマーの状態
   const [isRunning, setIsRunning] = useState(false);
   // タイマーの残り時間の状態
-  const [timeLeft, setTimeLeft] = useState({ minutes: 0, seconds: 3 });
+  const [timeLeft, setTimeLeft] = useState({ minutes: 25, seconds: 0 });
+
+  const [mode, setMode] = useState<Mode>("work");
+
+  const toggleMode = () => {
+    // モードの切り替え
+    const newMode = mode === "work" ? "break" : "work";
+    setMode(newMode);
+    // 作業モード２５分　休憩モード５分のタイマー
+    setTimeLeft({ minutes: newMode === "work" ? 25 : 5, seconds: 0 });
+
+    // タイマーを停止
+    setIsRunning(false);
+  };
+
   //   開始・停止ボタン
   const handleStart = () => {
     setIsRunning(!isRunning);
@@ -17,7 +37,10 @@ export default function TimerApp() {
   //   リセットボタン
   const handleReset = () => {
     setIsRunning(false);
-    setTimeLeft({ minutes: 25, seconds: 0 });
+    setTimeLeft({
+      minutes: mode === "work" ? 25 : 5,
+      seconds: 0,
+    });
   };
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
@@ -28,6 +51,8 @@ export default function TimerApp() {
           if (prev.seconds === 0) {
             if (prev.minutes === 0) {
               setIsRunning(false);
+              toggleMode();
+              void playNotificationSound();
               return prev;
             }
 
@@ -51,18 +76,28 @@ export default function TimerApp() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-center">
-            作業時間
+            {mode === "work" ? "作業時間" : "休憩時間"}
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-6">
-          <TimerDisplay minutes={timeLeft.minutes} seconds={timeLeft.seconds} />
+          <TimerDisplay
+            minutes={timeLeft.minutes}
+            seconds={timeLeft.seconds}
+            mode={mode}
+          />
           <Controls
             onStart={handleStart}
             onReset={handleReset}
+            onModeToggle={toggleMode}
             isRunning={isRunning}
           />
         </CardContent>
       </Card>
+      <MetadataUpdater
+        minutes={timeLeft.minutes}
+        seconds={timeLeft.seconds}
+        mode={mode}
+      />
     </div>
   );
 }
