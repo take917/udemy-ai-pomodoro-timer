@@ -10,15 +10,28 @@ import {
 import Controls from "./Controls";
 import MetadataUpdater from "./MetadataUpdater";
 import TimerDisplay from "./TimerDisplay";
-import { useEffect, useState } from "react";
-
+import { useEffect, useState, useRef } from "react";
+import { useReward } from "react-rewards";
 import { playNotificationSound } from "@/utils/sound";
 
 // タイマーのモードの型
 type Mode = "work" | "break";
 
 export default function TimerApp() {
+  const { reward: confetti, isAnimating } = useReward(
+    "confettiReward",
+    "confetti",
+    {
+      elementCount: 100,
+      spread: 70,
+      decay: 0.93,
+      lifetime: 150,
+    }
+  );
+
   const [workDuration, setWorkDuration] = useState(25);
+  const [breakDuration, setBreakDuration] = useState(5);
+
   // タイマーの状態
   const [isRunning, setIsRunning] = useState(false);
   // タイマーの残り時間の状態
@@ -34,7 +47,10 @@ export default function TimerApp() {
     const newMode = mode === "work" ? "break" : "work";
     setMode(newMode);
     // 作業モード２５分　休憩モード５分のタイマー
-    setTimeLeft({ minutes: newMode === "work" ? workDuration : 5, seconds: 0 });
+    setTimeLeft({
+      minutes: newMode === "work" ? workDuration : breakDuration,
+      seconds: 0,
+    });
 
     // タイマーを停止
     setIsRunning(false);
@@ -48,7 +64,7 @@ export default function TimerApp() {
   const handleReset = () => {
     setIsRunning(false);
     setTimeLeft({
-      minutes: mode === "work" ? workDuration : 5,
+      minutes: mode === "work" ? workDuration : breakDuration,
       seconds: 0,
     });
   };
@@ -62,7 +78,10 @@ export default function TimerApp() {
             if (prev.minutes === 0) {
               setIsRunning(false);
               toggleMode();
-              void playNotificationSound();
+              if (mode === "work") {
+                void confetti();
+                void playNotificationSound();
+              }
               return prev;
             }
 
@@ -71,7 +90,7 @@ export default function TimerApp() {
 
           return { ...prev, seconds: prev.seconds - 1 };
         });
-      }, 1000);
+      }, 1);
     }
 
     return () => {
@@ -82,7 +101,11 @@ export default function TimerApp() {
   }, [isRunning]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
+      <span
+        id="confettiReward"
+        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+      />
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-center">
@@ -102,25 +125,51 @@ export default function TimerApp() {
             isRunning={isRunning}
           />
         </CardContent>
-        <CardFooter className="flex justify-center gap-2">
-          <label className="text-sm font-medium">作業時間</label>
-          <select
-            value={workDuration}
-            onChange={(e) => {
-              const newDuration = parseInt(e.target.value);
-              setWorkDuration(newDuration);
-              if (mode === "work" && !isRunning) {
-                setTimeLeft({ minutes: newDuration, seconds: 0 });
-              }
-            }}
-            className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {[5, 10, 15, 30, 45, 60].map((minutes) => (
-              <option value={minutes} key={minutes}>
-                {minutes}分
-              </option>
-            ))}
-          </select>
+        <CardFooter className="flex flex-col w-full gap-4 max-w-[200px] mx-auto">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium min-w-[4.5rem]">
+              作業時間
+            </label>
+            <select
+              value={workDuration}
+              onChange={(e) => {
+                const newDuration = parseInt(e.target.value);
+                setWorkDuration(newDuration);
+                if (mode === "work" && !isRunning) {
+                  setTimeLeft({ minutes: newDuration, seconds: 0 });
+                }
+              }}
+              className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {[5, 10, 15, 25, 30, 45, 60].map((minutes) => (
+                <option value={minutes} key={minutes}>
+                  {minutes}分
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium min-w-[4.5rem]">
+              休憩時間
+            </label>
+            <select
+              value={breakDuration}
+              onChange={(e) => {
+                const newDuration = parseInt(e.target.value);
+                setBreakDuration(newDuration);
+                if (mode === "break" && !isRunning) {
+                  setTimeLeft({ minutes: newDuration, seconds: 0 });
+                }
+              }}
+              className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {[5, 10, 15].map((minutes) => (
+                <option value={minutes} key={minutes}>
+                  {minutes}分
+                </option>
+              ))}
+            </select>
+          </div>
         </CardFooter>
       </Card>
       <MetadataUpdater
