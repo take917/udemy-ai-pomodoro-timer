@@ -1,6 +1,12 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
 import Controls from "./Controls";
 import MetadataUpdater from "./MetadataUpdater";
 import TimerDisplay from "./TimerDisplay";
@@ -12,10 +18,14 @@ import { playNotificationSound } from "@/utils/sound";
 type Mode = "work" | "break";
 
 export default function TimerApp() {
+  const [workDuration, setWorkDuration] = useState(25);
   // タイマーの状態
   const [isRunning, setIsRunning] = useState(false);
   // タイマーの残り時間の状態
-  const [timeLeft, setTimeLeft] = useState({ minutes: 25, seconds: 0 });
+  const [timeLeft, setTimeLeft] = useState({
+    minutes: workDuration,
+    seconds: 0,
+  });
 
   const [mode, setMode] = useState<Mode>("work");
 
@@ -24,7 +34,7 @@ export default function TimerApp() {
     const newMode = mode === "work" ? "break" : "work";
     setMode(newMode);
     // 作業モード２５分　休憩モード５分のタイマー
-    setTimeLeft({ minutes: newMode === "work" ? 25 : 5, seconds: 0 });
+    setTimeLeft({ minutes: newMode === "work" ? workDuration : 5, seconds: 0 });
 
     // タイマーを停止
     setIsRunning(false);
@@ -38,7 +48,7 @@ export default function TimerApp() {
   const handleReset = () => {
     setIsRunning(false);
     setTimeLeft({
-      minutes: mode === "work" ? 25 : 5,
+      minutes: mode === "work" ? workDuration : 5,
       seconds: 0,
     });
   };
@@ -92,6 +102,26 @@ export default function TimerApp() {
             isRunning={isRunning}
           />
         </CardContent>
+        <CardFooter className="flex justify-center gap-2">
+          <label className="text-sm font-medium">作業時間</label>
+          <select
+            value={workDuration}
+            onChange={(e) => {
+              const newDuration = parseInt(e.target.value);
+              setWorkDuration(newDuration);
+              if (mode === "work" && !isRunning) {
+                setTimeLeft({ minutes: newDuration, seconds: 0 });
+              }
+            }}
+            className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {[5, 10, 15, 30, 45, 60].map((minutes) => (
+              <option value={minutes} key={minutes}>
+                {minutes}分
+              </option>
+            ))}
+          </select>
+        </CardFooter>
       </Card>
       <MetadataUpdater
         minutes={timeLeft.minutes}
