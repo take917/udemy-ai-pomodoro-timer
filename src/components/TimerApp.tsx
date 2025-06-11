@@ -10,6 +10,7 @@ import {
 import Controls from "./Controls";
 import MetadataUpdater from "./MetadataUpdater";
 import TimerDisplay from "./TimerDisplay";
+import { Switch } from "@/components/ui/switch";
 import { useEffect, useState, useRef } from "react";
 import { useReward } from "react-rewards";
 import { playNotificationSound } from "@/utils/sound";
@@ -42,6 +43,7 @@ export default function TimerApp() {
 
   const [mode, setMode] = useState<Mode>("work");
 
+  const [autoStart, setAutoStart] = useState(false);
   const toggleMode = () => {
     // モードの切り替え
     const newMode = mode === "work" ? "break" : "work";
@@ -53,7 +55,7 @@ export default function TimerApp() {
     });
 
     // タイマーを停止
-    setIsRunning(false);
+    setIsRunning(autoStart);
   };
 
   //   開始・停止ボタン
@@ -77,11 +79,15 @@ export default function TimerApp() {
           if (prev.seconds === 0) {
             if (prev.minutes === 0) {
               setIsRunning(false);
-              toggleMode();
               if (mode === "work") {
                 void confetti();
-                void playNotificationSound();
               }
+
+              void playNotificationSound();
+
+              setTimeout(() => {
+                toggleMode();
+              }, 100);
               return prev;
             }
 
@@ -169,6 +175,15 @@ export default function TimerApp() {
                 </option>
               ))}
             </select>
+          </div>
+          <div className="flex items-center gap-2 w-full justify-between">
+            <label className="text-sm font-medium min-w-[4.5rem]">
+              自動開始
+            </label>
+            <Switch
+              checked={autoStart}
+              onCheckedChange={() => setAutoStart(!autoStart)}
+            />
           </div>
         </CardFooter>
       </Card>
