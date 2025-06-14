@@ -14,6 +14,8 @@ import { Switch } from "@/components/ui/switch";
 import { useEffect, useState, useRef } from "react";
 import { useReward } from "react-rewards";
 import { playNotificationSound } from "@/utils/sound";
+import { generateRefreshSuggestion } from "@/utils/gemini";
+import RefreshSuggestion from "./RefreshSuggestion";
 
 // タイマーのモードの型
 type Mode = "work" | "break";
@@ -54,9 +56,19 @@ export default function TimerApp() {
       seconds: 0,
     });
 
+    if (newMode === "break") {
+      generateRefreshSuggestion()
+        .then((suggestion) => setRefreshSuggestion(suggestion))
+        .catch(console.error);
+    }
+
     // タイマーを停止
     setIsRunning(autoStart);
   };
+
+  const [refreshSuggestion, setRefreshSuggestion] = useState<string | null>(
+    null
+  );
 
   //   開始・停止ボタン
   const handleStart = () => {
@@ -70,6 +82,7 @@ export default function TimerApp() {
       seconds: 0,
     });
   };
+
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
 
@@ -105,6 +118,14 @@ export default function TimerApp() {
       }
     };
   }, [isRunning]);
+
+  //   useEffect(() => {
+  //     const testGemini = async () => {
+  //       const suggestion = await generateRefreshSuggestion();
+  //       console.log(suggestion);
+  //     };
+  //     testGemini();
+  //   }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
@@ -145,7 +166,7 @@ export default function TimerApp() {
                   setTimeLeft({ minutes: newDuration, seconds: 0 });
                 }
               }}
-              className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
             >
               {[5, 10, 15, 25, 30, 45, 60].map((minutes) => (
                 <option value={minutes} key={minutes}>
@@ -167,7 +188,7 @@ export default function TimerApp() {
                   setTimeLeft({ minutes: newDuration, seconds: 0 });
                 }
               }}
-              className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
             >
               {[5, 10, 15].map((minutes) => (
                 <option value={minutes} key={minutes}>
@@ -183,6 +204,7 @@ export default function TimerApp() {
             <Switch
               checked={autoStart}
               onCheckedChange={() => setAutoStart(!autoStart)}
+              className="cursor-pointer"
             />
           </div>
         </CardFooter>
@@ -191,6 +213,10 @@ export default function TimerApp() {
         minutes={timeLeft.minutes}
         seconds={timeLeft.seconds}
         mode={mode}
+      />
+      <RefreshSuggestion
+        suggestion={refreshSuggestion}
+        onClose={() => setRefreshSuggestion(null)}
       />
     </div>
   );
